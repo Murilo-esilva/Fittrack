@@ -1,6 +1,6 @@
-// Configuração pública do Supabase. A chave publishable/anon pode ficar no GitHub Pages.
-// NUNCA coloque aqui a service_role/secret key nem uma senha de banco de dados.
+// Credenciais públicas do projeto Supabase. Não coloque service_role/secret aqui.
+// O isolamento dos dados é garantido pelo RLS em supabase/schema.sql.
 window.FITTRACK_CONFIG = {
-  url: "https://SEU-PROJETO.supabase.co",
-  publishableKey: "SUA_CHAVE_PUBLICAVEL"
+  url: "https://ckuvtbrfgsiehorvwero.supabase.co",
+  publishableKey: "sb_publishable_TXEuMczKFHnGk44l6CZg9Q_a7R3mZgm"
 };
