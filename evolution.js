@@ -84,12 +84,46 @@ function lineSvg(points,label,unit,color){
  return svg;
 }
 function exerciseOptions(){
- return WORKOUTS.flatMap(w=>w.items.map((exercise,index)=>({value:w.key+':'+index,text:'Treino '+w.key+' · '+exercise[0],workout:w.key,index})));
+ const active=window.FitTrackV4?window.FitTrackV4.plans().flatMap(w=>w.exercises.map((ex,index)=>({
+  value:w.key+'::'+ex.id,text:'Treino '+w.key+' · '+ex.name,workout:w.key,id:ex.id,name:ex.name,index
+ }))):WORKOUTS.flatMap(w=>w.items.map((ex,index)=>({
+  value:w.key+'::legacy:'+ex[0],text:'Treino '+w.key+' · '+ex[0],workout:w.key,name:ex[0],index
+ })));
+ const opts=[...active],seen=new Set(active.map(o=>o.value));
+ for(const r of allRecords()){
+  if(!r||r.type!=='training'||!Array.isArray(r.items))continue;
+  for(const item of r.items){
+   if(!item||typeof item.name!=='string'||!item.name)continue;
+   if(item.exerciseId&&active.some(o=>o.workout===r.workout&&o.id===item.exerciseId))continue;
+   if(!item.exerciseId&&active.some(o=>o.workout===r.workout&&o.name===item.name))continue;
+   const value=r.workout+'::'+(item.exerciseId||'legacy:'+item.name);
+   if(seen.has(value))continue;
+   seen.add(value);opts.push({
+    value,text:'Treino '+r.workout+' · '+item.name+' (histórico)',
+    workout:r.workout,id:item.exerciseId||null,name:item.name
+   });
+  }
+ }
+ return opts;
 }
 function exerciseHistory(opt){
- return allRecords().filter(r=>r&&r.type==='training'&&r.workout===opt.workout&&validDay(r.date))
- .map(r=>({date:r.date,value:cleanNumber(r.items&&r.items[opt.index]&&r.items[opt.index].weight),done:Number(r.items&&r.items[opt.index]&&r.items[opt.index].done)||0}))
- .filter(p=>p.done>0&&Number.isFinite(p.value)&&p.value>0).sort((a,b)=>a.date.localeCompare(b.date));
+ const history=[];
+ for(const r of allRecords()){
+  if(!r||r.type!=='training'||r.workout!==opt.workout||!validDay(r.date)||!Array.isArray(r.items))continue;
+  const item=r.items.find(i=>i&&opt.id&&i.exerciseId===opt.id)||
+   r.items.find(i=>i&&!i.exerciseId&&i.name===opt.name);
+  if(!item)continue;
+  let value=NaN;
+  if(Array.isArray(item.sets)){
+   const values=item.sets.filter(s=>s&&s.done&&s.weight!==null&&s.weight!==undefined&&s.weight!=='')
+    .map(s=>cleanNumber(s.weight)).filter(n=>Number.isFinite(n)&&n>=0);
+   if(values.length)value=Math.max(...values);
+  }else if((Number(item.done)||0)>0&&item.weight!==null&&item.weight!==undefined&&item.weight!==''){
+   value=cleanNumber(item.weight);
+  }
+  if(Number.isFinite(value)&&value>=0)history.push({date:r.date,value});
+ }
+ return history.sort((a,b)=>a.date.localeCompare(b.date));
 }
 function weightWindow(){
  const entries=weightEntries();if(weightRange==='all')return entries;
