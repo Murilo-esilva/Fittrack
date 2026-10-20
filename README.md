@@ -14,6 +14,33 @@ Aplicação web estática (GitHub Pages) para registrar treinos A–E, cargas, p
 
 **Atenção:** conectar o projeto Supabase ao repositório GitHub **não aplica automaticamente** o SQL nem disponibiliza as configurações de conexão no navegador.
 
+## FitTrack V4 — séries completas e fichas personalizadas
+
+### Registro por série
+- Cada exercício agora registra **carga (kg)**, **repetições ou segundos** e se a série foi concluída.
+- Séries podem ter cargas e repetições diferentes. A carga pode ficar em branco (exercícios sem carga externa).
+- A ficha mostra conclusão por série e progresso total. Treinos parciais continuam válidos.
+- As cargas e repetições anteriores aparecem como sugestão para as próximas sessões.
+- As alterações em andamento usam o mecanismo existente de salvamento na nuvem; para salvar um treino concluído, use **Concluir treino**.
+- **Histórico → Ver exercícios e séries** apresenta a execução registrada.
+
+### Editor de fichas A–E
+- Em **Treinos → Editar ficha**, altere nome e foco, adicione ou remova exercícios, mova-os pelas setas e defina quantas séries e quais repetições/tempo deseja acompanhar.
+- As fichas são individuais e salvas no mesmo documento de usuário do Supabase em `data.plans`. Não é necessário criar tabelas novas.
+- Os exercícios possuem identificadores estáveis: mudar a ordem **não mistura os gráficos** dos exercícios.
+- Treinos antigos não são modificados quando uma ficha é editada. O gráfico de evolução também pode exibir exercícios removidos do plano.
+- Se uma edição excluir séries já marcadas num treino em andamento, o aplicativo solicita confirmação.
+
+### Compatibilidade com as versões anteriores
+- Registros da V3 são preservados com quantidade de séries e carga por exercício; **repetições antigas desconhecidas não são inventadas**.
+- Rascunhos da V3 com séries já marcadas continuam visíveis, mas exigem completar as repetições/segundos para concluir o treino na V4.
+- `data.records` agora aceita registros de treino com `schemaVersion: 4`, `exerciseId` e `sets: [{weight,reps,done}]`. Cada exercício também mantém o campo agregado `done`, para manter compatibilidade com o resumo e os gráficos.
+- `data.plans` é opcional: perfis e backups antigos recebem os planos padrão ao serem carregados. A importação/exportação JSON mantém o mesmo formato de backup V2.
+- Não há mudança nas políticas RLS nem no banco; o documento continua protegido pelo usuário autenticado.
+
+### Testes automatizados
+O repositório inclui `tests/v4.test.cjs` e o workflow `.github/workflows/validate-v4.yml`, que validam o JavaScript, a conversão de rascunhos V3, o registro individual de séries, o editor de fichas e a continuidade dos gráficos.
+
 ## Painel de evolução (V3)
 
 A aba **Evolução** reúne gráficos SVG responsivos e acessíveis, sem dependências adicionais:
@@ -50,7 +77,9 @@ A versão inicial mantém **um documento JSON por usuário**, com limite de **2 
 ## Arquivos
 
 - `index.html`: interface, incluindo a aba Evolução e eventos do FitTrack.
-- `evolution.js`: gráficos SVG, indicadores e registro de peso corporal.
+- `evolution.js`: gráficos SVG, indicadores, registros de peso corporal e compatibilidade V4.
+- `v4.js`: lógica do registro de séries, editor de fichas e histórico detalhado.
+- `v4.css`: estilo responsivo do editor e das séries.
 - `cloud.js`: autenticação SDK, leitura e RPC de persistência.
-- `config.js`: URL e chave pública do Supabase (ainda precisa ser preenchido).
+- `config.js`: URL e chave pública já configuradas do Supabase.
 - `supabase/schema.sql`: estrutura do banco, RLS e gravação controlada.
