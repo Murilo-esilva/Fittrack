@@ -6,7 +6,7 @@ let selectedExercise='',weightRange='365',editingWeightId=null;
 const cleanNumber=(x)=>{const n=Number(String(x??'').replace(',','.'));return Number.isFinite(n)?n:NaN};
 const fmt=(n,decimals=1)=>Number(n).toLocaleString('pt-BR',{minimumFractionDigits:decimals,maximumFractionDigits:decimals});
 const dateObj=(s)=>new Date(s+'T12:00:00');
-const validDay=(s)=>typeof s==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(s)&&Number.isFinite(dateObj(s).getTime())&&dateObj(s).toISOString().slice(0,10)===s;
+const validDay=(s)=>{if(typeof s!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(s))return false;const d=dateObj(s);return Number.isFinite(d.getTime())&&d.getFullYear()===Number(s.slice(0,4))&&d.getMonth()+1===Number(s.slice(5,7))&&d.getDate()===Number(s.slice(8,10))};
 const prettyDate=(s)=>validDay(s)?dateObj(s).toLocaleDateString('pt-BR'):'—';
 const shortDate=(s)=>validDay(s)?s.slice(8,10)+'/'+s.slice(5,7):'—';
 const allRecords=()=>Array.isArray(db.records)?db.records:[];
@@ -23,7 +23,7 @@ function weeksBack(count){
 function weekly(type,valueOf){
  const weeks=weeksBack(8),lookup=new Map(weeks.map((w,i)=>[w.key,i]));
  for(const r of allRecords()){
-  if(!r||r.type!==type||!validDay(r.date))continue;
+  if(!r||r.type!==type||!validDay(r.date)||r.date>iso())continue;
   const day=dateObj(r.date),shift=(day.getDay()+6)%7;day.setDate(day.getDate()-shift);
   const key=[day.getFullYear(),String(day.getMonth()+1).padStart(2,'0'),String(day.getDate()).padStart(2,'0')].join('-');
   if(lookup.has(key)){const n=valueOf(r);if(Number.isFinite(n)&&n>=0)weeks[lookup.get(key)].value+=n;}
