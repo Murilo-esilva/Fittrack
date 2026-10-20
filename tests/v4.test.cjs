@@ -79,7 +79,7 @@ test('V4 saves every completed series and does not rewrite legacy sessions',asyn
  assert.equal(r.items[0].done,2);
  assert.equal(f.db.records[0].items[0].weight,'25');
  assert.match(m.historyDetails(r),/repetições\/segundos/);
- assert.equal(f.db.drafts.A,undefined);
+ assert.ok(f.db.drafts.A.byId['A-0'].every(series=>!series.done));
  assert.equal(f.getSaves(),1);
 });
 
