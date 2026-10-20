@@ -27,14 +27,14 @@ function findOldRecordExercise(rec,ex,index){
  if(!rec||!Array.isArray(rec.items))return null;
  return rec.items.find(item=>item&&item.exerciseId===ex.id)||
         rec.items.find(item=>item&&item.name===ex.name)||
-        (!rec.schemaVersion?rec.items[index]:null);
+        (!rec.schemaVersion&&!rec.items.some(item=>item&&item.name)?rec.items[index]:null);
 }
 function previous(w,ex,index){
  const records=db.records.filter(r=>r&&r.type==="training"&&r.workout===w.key&&r.date&&r.date<=iso()).sort((a,b)=>b.date.localeCompare(a.date)||(b.createdAt||"").localeCompare(a.createdAt||""));
  for(const rec of records){
   const item=findOldRecordExercise(rec,ex,index);
   if(!item)continue;
-  const sets=Array.isArray(item.sets)?item.sets.filter(s=>s&&s.done):[];
+  const sets=Array.isArray(item.sets)?item.sets:[];
   const oldWeight=num(item.weight);
   if(sets.length||((Number(item.done)||0)>0)){
    return {sets,weight:validNum(oldWeight,1000)?oldWeight:null};
@@ -47,7 +47,7 @@ function defaultRep(target){
  return match?Number(match[0]):"";
 }
 function makeSets(w,ex,index){
- const prev=previous(w,ex,index),fallback=num(db.weights[w.key+":"+index]);
+ const prev=previous(w,ex,index),fallback=ex.id===w.key+"-"+index?num(db.weights[w.key+":"+index]):null;
  return Array.from({length:ex.sets},(_,i)=>{
   const s=prev.sets[i]||prev.sets[prev.sets.length-1]||{};
   const n=num(s.weight);
@@ -89,9 +89,10 @@ function stats(w){
  return {total,done};
 }
 function progress(w){
- const {total,done}=stats(w);
+ const d=draft(w),{total,done}=stats(w);
  document.getElementById("bar").style.width=(total?100*done/total:0)+"%";
- document.getElementById("progressText").textContent=done+" de "+total+" séries concluídas";
+ const missing=w.exercises.some(e=>d.byId[e.id].some(s=>s.done&&(!Number.isInteger(num(s.reps))||num(s.reps)<=0)));
+ document.getElementById("progressText").textContent=done+" de "+total+" séries concluídas"+(missing?" · Preencha as repetições de séries antigas.":"");
 }
 function workoutTabs(){
  return plans().map(w=>'<button class="'+(w.key===selected?'active':'')+'" onclick="changeWorkout(\''+w.key+'\')"><b>'+w.key+'</b><small>'+html(w.name)+'</small></button>').join("");
@@ -255,9 +256,11 @@ async function savePlan(){
  const existing=plan(selected);
  const oldDraft=db.drafts[selected];
  const removed=existing.exercises.filter(e=>!p.exercises.some(n=>n.id===e.id));
- if(removed.length&&oldDraft?.byId&&removed.some(e=>oldDraft.byId[e.id]?.some(s=>s.done))){
-  if(!confirm("Você removeu exercícios com séries marcadas no treino em andamento. Continuar e descartar essas marcações?"))return;
- }
+ const lostChecked=oldDraft?.byId&&(
+  removed.some(e=>oldDraft.byId[e.id]?.some(s=>s.done))||
+  p.exercises.some(e=>(oldDraft.byId[e.id]||[]).slice(e.sets).some(s=>s.done))
+ );
+ if(lostChecked&&!confirm("Esta alteração vai descartar séries marcadas no treino em andamento. Continuar?"))return;
  lock=true;document.getElementById("v4SavePlan").disabled=true;
  try{
   clearDraftSave();
