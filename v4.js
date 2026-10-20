@@ -274,8 +274,29 @@ async function savePlan(){
 }
 function onPlanInfo(field,value){if(editor){editor[field]=value;editor.dirty=true}}
 function onLoad(){plans();if(editing)closeEditor(true);render()}
+
+function historyDetails(record){
+ if(!record||!Array.isArray(record.items))return "";
+ const list=record.items.filter(i=>i&&(Number(i.done)>0||(Array.isArray(i.sets)&&i.sets.some(s=>s?.done))));
+ if(!list.length)return '<p>Nenhuma série concluída registrada.</p>';
+ return list.map(item=>{
+  const sets=Array.isArray(item.sets)?item.sets.filter(s=>s&&s.done):null;
+  if(sets){
+   const rows=sets.map((set,i)=>{
+    const weight=num(set.weight),reps=num(set.reps);
+    return '<li>Série '+(i+1)+': '+(Number.isFinite(reps)?reps+' repetições/segundos':'repetições não anotadas')+
+       (validNum(weight,1000)?' · '+weight.toLocaleString('pt-BR')+' kg':' · sem carga informada')+'</li>';
+   });
+   return '<div><p><strong>'+html(item.name)+'</strong></p><ul>'+rows.join('')+'</ul></div>';
+  }
+  const count=Math.max(0,Number(item.done)||0),weight=num(item.weight);
+  return '<p><strong>'+html(item.name)+'</strong> — '+count+' séries concluídas'+
+     (validNum(weight,1000)?' · carga '+weight.toLocaleString('pt-BR')+' kg':'')+' (registro anterior à V4)</p>';
+ }).join("");
+}
+
 window.FitTrackV4={
  plans,plan,draft,render,changeWorkout,inputSet,toggleSet,finish,reset,openEditor,closeEditor,
- editField,move,remove,add,savePlan,onPlanInfo,onLoad,previous
+ editField,move,remove,add,savePlan,onPlanInfo,onLoad,previous,historyDetails
 };
 })();
