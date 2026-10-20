@@ -4,7 +4,7 @@ Aplicação web estática (GitHub Pages) para registrar treinos A–E, cargas, p
 
 ## Configurar a integração
 
-1. No projeto Supabase, abra **SQL Editor** e execute o arquivo [supabase/schema.sql](supabase/schema.sql). A tabela `public.fittrack_state`, as políticas de RLS e a função de gravação são criadas por esse script.
+1. **Banco de dados:** a migração versionada [supabase/migrations/20261020184000_fittrack_cloud.sql](supabase/migrations/20261020184000_fittrack_cloud.sql) está pronta para o Supabase GitHub Integration. Em **Project Settings → Integrations → GitHub Integration**, confirme que o repositório é `Murilo-esilva/Fittrack`, o **Working directory** é `.` e **Deploy to production** está habilitado. Com essa opção, a migração será aplicada automaticamente ao publicar/mesclar na branch de produção. **A ligação do GitHub, sozinha, não comprova que ela já rodou.** Alternativamente, abra **SQL Editor** e execute [supabase/schema.sql](supabase/schema.sql) manualmente (o SQL é idempotente).
 2. **Configuração pública do Supabase preenchida:** [config.js](config.js) já contém a Project URL e a chave **publishable** do projeto. Não é necessário configurar essas duas informações novamente.
 
    **Nunca use uma chave `service_role`, `secret` ou senha do banco no GitHub Pages.** A chave publishable/anon pode aparecer no código público, desde que o RLS esteja habilitado.
