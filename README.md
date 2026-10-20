@@ -14,6 +14,21 @@ Aplicação web estática (GitHub Pages) para registrar treinos A–E, cargas, p
 
 **Atenção:** conectar o projeto Supabase ao repositório GitHub **não aplica automaticamente** o SQL nem disponibiliza as configurações de conexão no navegador.
 
+## Painel de evolução (V3)
+
+A aba **Evolução** reúne gráficos SVG responsivos e acessíveis, sem dependências adicionais:
+- Treinos concluídos por semana (8 semanas).
+- Carga registrada por exercício dos treinos A–E (até 20 registros com séries concluídas).
+- Distância pedalada por semana (8 semanas).
+- Histórico de sono (20 check-ins).
+- Histórico do **peso corporal** com seleção de 30 dias, 90 dias, 12 meses ou todo o histórico.
+
+### Diário de peso corporal
+
+Na aba **Evolução → Peso corporal**, informe data, peso em quilogramas e observação opcional. O registro é **voluntário e descritivo**, sem metas automáticas, classificações ou julgamento de variações corporais. É possível editar ou excluir registros e visualizar as últimas medições. Se você preencher uma data já registrada, o registro daquele dia é atualizado para evitar duplicatas.
+
+**Armazenamento:** os registros de peso usam `type: 'weight'` no mesmo array `data.records` do estado já salvo no Supabase. Nenhuma nova tabela, permissão ou migração é necessária. Os backups JSON existentes continuam compatíveis (versão 2 da estrutura de dados). O front-end precisa estar online para salvar as alterações.
+
 ## Como funciona
 
 - Login/cadastro com e-mail e senha, incluindo recuperação de senha por e-mail.
@@ -34,7 +49,8 @@ A versão inicial mantém **um documento JSON por usuário**, com limite de **2 
 
 ## Arquivos
 
-- `index.html`: interface e eventos do FitTrack.
+- `index.html`: interface, incluindo a aba Evolução e eventos do FitTrack.
+- `evolution.js`: gráficos SVG, indicadores e registro de peso corporal.
 - `cloud.js`: autenticação SDK, leitura e RPC de persistência.
 - `config.js`: URL e chave pública do Supabase (ainda precisa ser preenchido).
 - `supabase/schema.sql`: estrutura do banco, RLS e gravação controlada.
