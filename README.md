@@ -5,19 +5,12 @@ Aplicação web estática (GitHub Pages) para registrar treinos A–E, cargas, p
 ## Configurar a integração
 
 1. No projeto Supabase, abra **SQL Editor** e execute o arquivo [supabase/schema.sql](supabase/schema.sql). A tabela `public.fittrack_state`, as políticas de RLS e a função de gravação são criadas por esse script.
-2. Em **Project Settings → API / API Keys**, copie o **Project URL** e a chave **publishable** (ou **anon**). Edite [config.js](config.js):
-
-   ```js
-   window.FITTRACK_CONFIG = {
-     url: "https://SEU-PROJETO.supabase.co",
-     publishableKey: "SUA_CHAVE_PUBLICAVEL"
-   };
-   ```
+2. **Configuração pública do Supabase preenchida:** [config.js](config.js) já contém a Project URL e a chave **publishable** do projeto. Não é necessário configurar essas duas informações novamente.
 
    **Nunca use uma chave `service_role`, `secret` ou senha do banco no GitHub Pages.** A chave publishable/anon pode aparecer no código público, desde que o RLS esteja habilitado.
 3. No Supabase, abra **Authentication → Providers** e confira que **Email** está habilitado. Se a confirmação de e-mail estiver ativa, o usuário precisará confirmar seu cadastro.
 4. Em **Authentication → URL Configuration**, configure a URL do GitHub Pages como **Site URL** e adicione-a em **Redirect URLs**. Exemplo, se a aplicação for publicada no repositório deste projeto: `https://murilo-esilva.github.io/Fittrack/`. Use a URL real do seu site.
-5. Faça o deploy no GitHub Pages depois de configurar os itens acima e teste criar uma conta e registrar um treino. O SDK JavaScript do Supabase é carregado via CDN e requer internet.
+5. Faça o deploy no GitHub Pages depois de executar o SQL e configurar autenticação/redirects, e teste criar uma conta e registrar um treino. O SDK JavaScript do Supabase é carregado via CDN e requer internet.
 
 **Atenção:** conectar o projeto Supabase ao repositório GitHub **não aplica automaticamente** o SQL nem disponibiliza as configurações de conexão no navegador.
 
