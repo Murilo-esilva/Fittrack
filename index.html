@@ -5,7 +5,7 @@
 @media(max-width:680px){main{padding:19px 13px 110px}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.workout{grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}.workout button{padding:11px 6px}.workout small{font-size:10px}.workout b{font-size:20px}.exercise{align-items:flex-start}.load input{width:61px}.formgrid{grid-template-columns:1fr}.card{padding:14px}.hero{padding:19px}}
 .authWrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:22px}.authCard{max-width:430px;width:100%;padding:27px}.authCard form{display:grid;gap:13px}.authCard h1{margin-bottom:12px}.authCard .btn{width:100%}.authActions{margin-top:15px;display:flex;justify-content:space-between;gap:12px}.authActions button{flex:1}.syncActions{display:flex;align-items:center;gap:9px}.syncActions button{padding:7px 10px;font-size:12px}.notice.error{border-color:#d97777;color:#ffc5c5}body:not(.ready)>header,body:not(.ready)>main,body:not(.ready)>nav{display:none!important}body.ready #authShell{display:none!important}
 </style></head><body>
-<div class="authWrap" id="authShell"><div class="card authCard"><div class="logo">fit<span>track</span> <small style="font-size:12px;color:#93b7bb">NUVEM</small></div><h1>Entre para acompanhar sua evolução</h1><p class="muted">Treinos, pedaladas e recuperação salvos com segurança no Supabase.</p><form id="authForm"><label>E-mail<input type="email" name="email" autocomplete="email" required></label><label>Senha<input type="password" name="password" autocomplete="current-password" minlength="6" required></label><button type="submit" class="btn" id="loginBtn">Entrar</button></form><div class="authActions"><button type="button" class="btn secondary" id="registerBtn">Criar conta</button><button type="button" class="btn ghost" id="resetPasswordBtn">Recuperar senha</button></div><div class="notice" id="authMessage" role="status" aria-live="polite">Conectando à nuvem...</div></div></div>
+<div class="authWrap" id="authShell"><div class="card authCard"><div class="logo">fit<span>track</span> <small style="font-size:12px;color:#93b7bb">NUVEM</small></div><h1>Entre para acompanhar sua evolução</h1><p class="muted">Treinos, pedaladas e recuperação salvos com segurança no Supabase.</p><form id="authForm"><label>E-mail<input type="email" name="email" autocomplete="email" required></label><label>Senha<input type="password" name="password" autocomplete="current-password" minlength="6" required></label><button type="submit" class="btn" id="loginBtn">Entrar</button></form><div class="authActions"><button type="button" class="btn secondary" id="registerBtn">Criar conta</button><button type="button" class="btn ghost" id="resetPasswordBtn">Recuperar senha</button></div><div class="notice" id="authMessage" role="status" aria-live="polite">Conectando à nuvem...</div><form id="passwordRecoveryForm" hidden style="margin-top:16px"><label>Nova senha<input type="password" name="password" minlength="8" autocomplete="new-password" required></label><button type="submit" class="btn">Atualizar minha senha</button></form></div></div>
 <header><div class="logo">fit<span>track</span><span style="font-size:11px;color:#93b7bb;margin-left:9px;letter-spacing:0">V2</span></div><div class="syncActions"><div class="tag" id="syncStatus" role="status">NUVEM</div><button class="btn ghost" onclick="logout()">Sair</button></div></header><main>
 <section id="dashboard"><div class="eyebrow">SEU CENTRO DE CONTROLE</div><h1>Seu ritmo. Sua evolução.</h1><p class="muted">Registre o essencial, acompanhe sua constância e respeite sua recuperação.</p><div class="grid" id="stats"></div><div class="hero"><div class="eyebrow">TREINO DO DIA</div><h2 id="todayName" style="margin-top:10px">Treino A — Push</h2><p class="muted">Exercícios pré-configurados. Informe a carga e marque as séries.</p><button class="btn" onclick="navigate('training')">Abrir treino →</button></div><div class="card"><h2>Últimas atividades</h2><div id="recent"></div></div></section>
 <section id="training" hidden><div class="eyebrow">MUSCULAÇÃO</div><h1>Meus treinos</h1><p class="muted">Selecione A–E. As cargas anteriores aparecem automaticamente.</p><div class="workout" id="workoutTabs"></div><div class="card"><div class="flex"><div><div class="eyebrow" id="workoutLetter"></div><h2 id="workoutTitle" style="margin:6px 0"></h2><div class="muted" id="workoutFocus"></div></div><label style="min-width:140px">Data<input id="workoutDate" type="date"></label></div><div class="progress"><div id="bar" style="width:0"></div></div><small id="progressText" class="muted"></small><div id="exerciseList"></div><div class="flex" style="margin-top:18px"><button class="btn" onclick="finishWorkout()">Concluir treino</button><button class="btn ghost" onclick="resetDraft()">Limpar marcações</button></div><div class="notice">Marque cada série concluída. Você pode registrar apenas parte do treino; não é necessário completar tudo.</div></div></section>
@@ -22,14 +22,14 @@ const KEY='fittrack.v2';const OLD='fittrack.registros.v1';
 const iso=()=>{let d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')};
 const safe=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const uid=()=>typeof crypto!=='undefined'&&crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(36).slice(2);
-let db={records:[],drafts:{},weights:{}};let selected='A',client=null,cloudUser=null,cloudRevision=0,saveChain=Promise.resolve(),saveError=false,draftTimer=null;
+let db={records:[],drafts:{},weights:{}};let selected='A',client=null,cloudUser=null,cloudRevision=0,saveChain=Promise.resolve(),saveError=false,draftTimer=null,pendingSaves=0,passwordRecovery=false;
 const cloneData=x=>JSON.parse(JSON.stringify(x));
 function syncStatus(message,isError=false){const el=document.getElementById('syncStatus');el.textContent=message;el.style.color=isError?'#ffc5c5':'#91d8d0';el.style.borderColor=isError?'#cf7171':'#2d6769'}
 function authMessage(message,isError=false){const el=document.getElementById('authMessage');el.textContent=message;el.classList.toggle('error',isError)}
 function validData(data){return !!data&&Array.isArray(data.records)&&data.records.every(r=>r&&typeof r==='object'&&typeof r.type==='string'&&typeof r.date==='string'&&/^[a-zA-Z0-9-]{1,100}$/.test(String(r.id)))&&data.drafts&&typeof data.drafts==='object'&&!Array.isArray(data.drafts)&&data.weights&&typeof data.weights==='object'&&!Array.isArray(data.weights)}
 function persist(){
  if(!cloudUser){syncStatus('LOGIN NECESSÁRIO',true);return Promise.resolve(false)}
- const snapshot=cloneData(db);
+ const snapshot=cloneData(db);pendingSaves++;
  syncStatus('SALVANDO...');
  const job=saveChain.then(async()=>{
    const result=await FitTrackCloud.save(snapshot,cloudRevision);
@@ -37,7 +37,7 @@ function persist(){
    cloudRevision=result.revision;saveError=false;syncStatus('SALVO NA NUVEM');return true;
  });
  saveChain=job.catch(()=>{});
- return job.catch(err=>{saveError=true;syncStatus('ERRO AO SALVAR',true);alert('FitTrack não salvou sua alteração na nuvem. '+err.message+'\nNão feche esta aba sem exportar um backup.');return false});
+ return job.catch(err=>{saveError=true;syncStatus('ERRO AO SALVAR',true);alert('FitTrack não salvou sua alteração na nuvem. '+err.message+'\nNão feche esta aba sem exportar um backup.');return false}).finally(()=>{pendingSaves--});
 }
 function queueDraftSave(){clearTimeout(draftTimer);syncStatus('ALTERAÇÕES PENDENTES');draftTimer=setTimeout(()=>{draftTimer=null;persist()},650)}
 function clearDraftSave(){if(draftTimer){clearTimeout(draftTimer);draftTimer=null}}
@@ -46,6 +46,7 @@ async function loadUser(){
   const result=await client.auth.getUser();
   if(result.error||!result.data.user)throw Error('Sessão inválida. Entre novamente.');
   cloudUser=result.data.user;
+  if(passwordRecovery){document.body.classList.remove('ready');document.getElementById('passwordRecoveryForm').hidden=false;authMessage('Defina sua nova senha para continuar.');return}
   const state=await FitTrackCloud.load();
   if(!validData(state.payload))throw Error('Formato de dados inesperado na nuvem. Verifique antes de salvar.');
   cloudRevision=state.revision;db=state.payload;saveError=false;saveChain=Promise.resolve();
@@ -89,11 +90,18 @@ async function logout(){
 async function boot(){
  try{
   client=FitTrackCloud.init();
+  client.auth.onAuthStateChange((event)=>{
+    if(event==='PASSWORD_RECOVERY'){
+      passwordRecovery=true;document.body.classList.remove('ready');
+      document.getElementById('passwordRecoveryForm').hidden=false;
+      authMessage('Defina sua nova senha para recuperar o acesso.');
+    }
+  });
   const {data,error}=await client.auth.getSession();if(error)throw error;
   if(data.session)await loadUser();else authMessage('Entre ou crie sua conta para salvar seus dados na nuvem.');
  }catch(err){authMessage(err.message,true)}
 }
-window.addEventListener('beforeunload',e=>{if(saveError||draftTimer){e.preventDefault();e.returnValue=''}});
+window.addEventListener('beforeunload',e=>{if(saveError||draftTimer||pendingSaves){e.preventDefault();e.returnValue=''}});
 
 function toast(t){let el=document.getElementById('toast');el.textContent=t;el.style.display='block';setTimeout(()=>el.style.display='none',2200)}
 function navigate(page){document.querySelectorAll('main section').forEach(x=>x.hidden=x.id!==page);document.querySelectorAll('#bottomNav button').forEach(x=>x.classList.toggle('active',x.dataset.page===page));if(page==='training')renderTraining();if(page==='dashboard')renderDashboard();if(page==='history')renderHistory();window.scrollTo(0,0)}
@@ -150,6 +158,16 @@ document.querySelectorAll('input[type=date]').forEach(x=>x.value=iso());
 document.getElementById('authForm').addEventListener('submit',login);
 document.getElementById('registerBtn').addEventListener('click',register);
 document.getElementById('resetPasswordBtn').addEventListener('click',resetPassword);
+document.getElementById('passwordRecoveryForm').addEventListener('submit',async event=>{
+ event.preventDefault();const password=event.target.querySelector('[name=password]').value;
+ try{
+  authMessage('Atualizando senha...');
+  const {error}=await client.auth.updateUser({password});
+  if(error)throw error;
+  passwordRecovery=false;event.target.reset();event.target.hidden=true;
+  await loadUser();
+ }catch(err){authMessage('Falha ao atualizar a senha: '+err.message,true)}
+});
 boot();
 
 </script></body></html>
