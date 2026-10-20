@@ -1,4 +1,6 @@
--- Initial FitTrack cloud schema; authorized user's data is isolated with RLS.
+-- FitTrack cloud initial schema. Also readable in ../schema.sql.
+-- Supabase GitHub integration applies this migration on deploy.
+
 -- Execute no SQL Editor do seu projeto Supabase.
 -- Cada usuário tem um snapshot do FitTrack; o controle de revisão previne sobrescrita silenciosa.
 create table if not exists public.fittrack_state (
